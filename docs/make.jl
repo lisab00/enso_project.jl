@@ -15,3 +15,8 @@ makedocs(;
         "Home" => "index.md",
     ],
 )
+
+deploydocs(
+    repo = "https://github.com/lisab00/enso_project.jl.git",
+    devbranch = "main",
+)
