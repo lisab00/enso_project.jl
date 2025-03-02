@@ -57,7 +57,7 @@ function cross_validate_esn(train_data::Matrix, val_data::Matrix, param_grid::Ve
             best_loss = loss
             best_params = hyperparams
             println(best_params)
-            #@printf "Validation loss = %.1e\n" best_loss
+            println("Validation loss = $best_loss")
         end
     end
     
