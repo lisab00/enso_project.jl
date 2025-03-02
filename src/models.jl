@@ -24,7 +24,7 @@ end
 
 Do a grid search on the given param_grid to find the optimal hyperparameters.
 """
-function cross_validate_esn(train_data::Matrix, val_data::Matrix, param_grid::Vector{ESNHyperparams})
+function cross_validate_esn(train_data::Matrix, val_data::Matrix, param_grid::Vector)
     best_loss = Inf
     best_params = nothing
 
@@ -80,7 +80,7 @@ function cross_validate_esn(train_data::Matrix, val_data::Matrix, param_grid::Ve
 end
 
 """
-    plot_prediction(esn, Wₒᵤₜ, test_data, λ_max)
+    plot_prediction(esn, Wₒᵤₜ, test_data)
 
 Given an Echo State Network, plot its predictions versus the given test set.
 """
@@ -91,10 +91,12 @@ function plot_prediction(esn::ESN, Wₒᵤₜ, test_data::Matrix)
     label = ["actual" "predicted"]
     times =  collect(0:steps_to_predict)[1:end-1]
 
-    p1 = plot(times, [test_data[1, :], prediction[1, :]], label = label, ylabel = "x(t)")
-    p2 = plot(times, [test_data[2, :], prediction[2, :]], label = label, ylabel = "y(t)")
-    p3 = plot(times, [test_data[3, :], prediction[3, :]], label = label, ylabel = "z(t)", xlabel = "t * λ_max")
-    plot(p1, p2, p3, layout = (3, 1), size = (800, 600))
+    subplots = []
+    for i in eachindex(test_data[:,1])
+        push!(subplots, plot(times, [test_data[i,:], prediction[i, :]], label=label, ylabel="feature $i"))
+    end
+
+    plot(subplots..., layout = (length(subplots), 1), size = (1100, 800))
 end
 
 """
