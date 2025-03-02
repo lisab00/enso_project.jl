@@ -1,6 +1,6 @@
 module enso_project
 
-using Parameters
+using Parameters, ReservoirComputing, Plots
 
 # Write your package code here.
 include("models.jl")
