@@ -1,8 +1,10 @@
 module enso_project
 
-using Parameters, ReservoirComputing, Plots
+using Parameters, ReservoirComputing, Plots, Flux, Optimisers, DifferentialEquations
 
 # Write your package code here.
-include("models.jl")
+include("esn.jl")
+
+include("nde.jl")
 
 end
