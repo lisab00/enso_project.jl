@@ -23,7 +23,7 @@ struct ChaoticNDE{P,R,A,K} <: AbstractChaoticNDEModel
     kwargs::K
 end 
 
-function ChaoticNDE(prob; alg=Tsit5(), kwargs...)
+function ChaoticNDE(prob; alg=OrdinaryDiffEq.Tsit5(), kwargs...)
     p = prob.p 
     ChaoticNDE{typeof(p), typeof(prob), typeof(alg), typeof(kwargs)}(p, prob, alg, kwargs)
 end 
@@ -86,10 +86,10 @@ function train_node(train::Any, valid::Any,
     neural_ode(u, p, t) = re_nn(p)(u)
     
     basic_tgrad(u,p,t) = zero(u)
-    odefunc = ODEFunction{false}(neural_ode,tgrad=basic_tgrad)
-    node_prob = ODEProblem(odefunc, u0, (Float32(0.),Float32(dt)), p)
+    odefunc = SciMLBase.ODEFunction{false}(neural_ode,tgrad=basic_tgrad)
+    node_prob = SciMLBase.ODEProblem(odefunc, u0, (Float32(0.),Float32(dt)), p)
     
-    model = enso_project.ChaoticNDE(node_prob)
+    model = ChaoticNDE(node_prob)
 
     loss = Flux.Losses.mse
     opt = Flux.AdamW(η)
@@ -101,7 +101,7 @@ function train_node(train::Any, valid::Any,
         println("starting training with N_EPOCHS= ",N_epochs, " - N_weights=",N_weights, " - activation=",activation, " - η=",η)
         N_epochs_i = i_τ == 2 ? 2*Int(ceil(N_epochs/τ_max)) : ceil(N_epochs/τ_max) # N_epochs sets the total amount of epochs 
         
-        train_i = NODEDataloader(train, i_τ)
+        train_i = NODEData.NODEDataloader(train, i_τ)
         for i_e = 1:N_epochs_i
 
             Flux.train!(model, train_i, opt_state) do m, t, x
@@ -110,7 +110,8 @@ function train_node(train::Any, valid::Any,
             end 
 
             if (i_e % 5) == 0  # reduce the learning rate every 5 epochs
-                global η /= 2
+                #global η /= 2
+                η /= 2
                 Flux.adjust!(opt_state, η)
             end
         end
@@ -162,7 +163,8 @@ function train_and_validate_node(train::Any, valid::Any,
     opt_loss = findmin(valid_losses)
     Random.seed!(seeds[opt_loss[2]])
     opt_hpars = sampler(seeds[opt_loss[2]],opt_loss[2])
+    #opt_pars = opt_ps[opt_loss[2]]
 
-    return opt_loss, opt_hpars
+    return opt_loss, opt_hpars#, opt_pars
 end
 
