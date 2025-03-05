@@ -38,3 +38,9 @@ jobs:
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
+      - name: instantiate environment
+        run: |
+            julia -e '
+              using Pkg
+              Pkg.add(url=“https://github.com/maximilian-gelbrecht/NODEData.jl.git")
+              Pkg.develop(PackageSpec(path=pwd()))
