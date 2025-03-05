@@ -1,20 +1,21 @@
 abstract type AbstractChaoticNDEModel end 
 
+# implement a model ChaoticNDE to assist in setting up NDEs based on the ChaoticNDETools.jl package
 """
     ChaoticNDE{P,R,A,K} <: AbstractChaoticNDEModel
 
-Model for setting up and training Chaotic Neural Differential Equations.
+Model for setting up and training a Chaotic Neural Differential Equation.
 
 # Fields:
 
-* `p` parameter vector 
-* `prob` DEProblem 
-* `alg` Algorithm to use for the `solve` command 
-* `kwargs` any additional keyword arguments that should be handed over (e.g. `sensealg`)
+* 'p' parameter vector 
+* 'prob' NDEProblem 
+* 'alg' Algorithm to use for the 'solve' command 
+* 'kwargs' any additional keyword arguments that should be handed over (e.g. `sensealg`)
 
 # Constructor 
 
-`ChaoticNDE(prob; alg=Tsit5(), kwargs...)`
+'ChaoticNDE(prob; alg=Tsit5(), kwargs...)'
 """
 struct ChaoticNDE{P,R,A,K} <: AbstractChaoticNDEModel
     p::P 
@@ -36,13 +37,13 @@ function (m::ChaoticNDE)(X, p=m.p)
     Array(solve(remake(m.prob; tspan=(t[1],t[end]), u0=x[:,1],p=p), m.alg; saveat=t, m.kwargs...)) 
 end
 
-# implement RandomSampler for hyperparameter sampling from SlurmHyperopt.jl package
+# implement an object RandomSampler for hyperparameter sampling from the SlurmHyperopt.jl package
 abstract type AbstractHyperparameterSampler end
 
 """
     RandomSampler(;kwargs...)
 
-Draws a hyperparameters config from the `kwargs` randomly.
+Sample randomly a hyperparameters configuration from the 'kwargs'.
 """
 struct RandomSampler <: AbstractHyperparameterSampler
     par_dic
@@ -67,10 +68,10 @@ function plot_node(m::ChaoticNDE, ndedata::Any)
 end
 
 """
-    train_node(training_data, validation_data, N_epochs, N_weights, N_hidden_layers, act, τ_max, η, seed)
+    train_node(training_data::NODEDataloader, validation_data::NODEDataloader, N_epochs, N_weights, N_hidden_layers, act, τ_max, η, seed)
 
-Train the NDE with weights `N_weights`, activation function `act`, until integration length `τ_max` with learning rate `η`. 
-For reproducibility of the results set random `seed`.
+Train the NDE with weights 'N_weights', activation function 'act', until integration length 'τ_max' with learning rate 'η'. 
+For reproducibility of the results set random 'seed'.
 """
 function train_node(train::Any, valid::Any, 
     N_epochs::Int64, N_weights::Int64, N_hidden_layers::Int64, activation::Function, τ_max::Int64, η::Float32, seed::Int64)
@@ -124,10 +125,10 @@ function train_node(train::Any, valid::Any,
 end
 
 """
-    train_and_validate_node(training_data, validation_data, N_epochs, N_weights, N_hidden_layers, act, τ_max, η, seed)
+    train_and_validate_node(training_data::NODEDataloader, validation_data::NODEDataloader, N_epochs, N_weights, N_hidden_layers, act, τ_max, η, seed)
 
-Sample randomly `N_samples` hyperparameter configs for the NDE and train the NDE for each config over `N_epochs` epochs.
-For reproducibility of the results set random seed for each hyperparameter sample from given `seeds`.
+Sample randomly 'N_samples' hyperparameter configs for the NDE and train the NDE for each config over 'N_epochs' epochs.
+For reproducibility of the results set random seed for each hyperparameter sample from given 'seeds'.
 """
 function train_and_validate_node(train::Any, valid::Any, 
     N_samples::Int64, N_epochs::Int64, seeds::Vector{Int64}, sampler::RandomSampler)
