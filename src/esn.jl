@@ -1,7 +1,9 @@
+abstract type AbstractESNHyperparams end
+
 """
 Hyperparameters for an Echo State Network.
 """
-struct ESNHyperparams
+struct ESNHyperparams <: AbstractESNHyperparams
     reservoir_size::Int64
     spectral_radius::Float64
     sparsity::Float64
