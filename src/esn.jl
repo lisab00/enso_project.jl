@@ -86,19 +86,15 @@ end
 
 Given an Echo State Network, plot its predictions versus the given test set.
 """
-function plot_prediction(esn::ESN, Wₒᵤₜ, test_data::Matrix)
-    steps_to_predict = size(test_data, 2)
+function plot_esn_prediction(esn::ESN, Wₒᵤₜ, data::Matrix)
+    steps_to_predict = size(data, 2)
     prediction = esn(Generative(steps_to_predict), Wₒᵤₜ)
     
     label = ["actual" "predicted"]
     times =  collect(0:steps_to_predict)[1:end-1]
 
-    subplots = []
-    for i in eachindex(test_data[:,1])
-        push!(subplots, plot(times, [test_data[i,:], prediction[i, :]], label=label, ylabel="feature $i"))
-    end
+    plot(times, [data[1,:], prediction[1, :]], label=label, ylabel="ONI")
 
-    plot(subplots..., layout = (length(subplots), 1), size = (1100, 800))
 end
 
 """
