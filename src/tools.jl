@@ -50,6 +50,17 @@ function plot_loss_evolution(loss::Vector, splits::Vector)
 end
 
 """
+    plot_error_curve(errors::Matrix, threshold::Float64)
+
+    given the errors between predictions and dataset, as well as an error threshold, plot the error curve
+"""
+
+function plot_error_curve(errors::Matrix, threshold::Float64)
+    plot(errors[1,:], xlabel="Months", ylabel="Error Curve", label="Error", title="Error between Prediction and True Data")
+    hline!([threshold], linestyle=:dash, color=:red, label="Threshold")
+end
+
+"""
     forecast_δ(prediction::AbstractArray{T,N}, truth::AbstractArray{T,N}, mode::String="both") where {T,N}
 
 Assumes that the last dimension of the input arrays is the time dimension and `N_t` long. 
