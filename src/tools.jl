@@ -73,7 +73,7 @@ Supported modes:
 * `"maximum"`: maximum norm 
 * `"norm"`: normalized, similar to the metric used in Pathak et al 
 """
-function forecast_δ_1D(prediction::AbstractArray{T,N}, truth::AbstractArray{T,N}, mode::String="norm", type::String) where {T,N}
+function forecast_δ_1D(prediction::AbstractArray{T,N}, truth::AbstractArray{T,N}, type::String, mode::String="norm") where {T,N}
 
     if !(mode in ["mean","largest","both","norm"])
         error("mode has to be either 'mean', 'largest' or 'both', 'norm'.")
@@ -103,7 +103,7 @@ end
 Returns the forecast lengths of predictions on a NODEDataloader set (should be valid or test set) given a `(t, u0) -> prediction` function. 
     `N_t` is the length of each forecast, has to be larger than the expected forecast length. If a `λmax` is given, the results are scaled with it (and `dt``)
 """
-function forecast_lengths(model, t::AbstractArray{T,1}, data::AbstractArray{T,S}, N_t::Integer, type::String; λ_max=0, mode="norm", threshold=0.4, output_data::Union{Nothing, AbstractArray{T,S}}=nothing) where {T,S}
+function forecast_lengths(model, t::AbstractArray{T,1}, data::AbstractArray{T,S},type::String, N_t::Integer; λ_max=0, mode="norm", threshold=0.4, output_data::Union{Nothing, AbstractArray{T,S}}=nothing) where {T,S}
     
     N = length(t) - N_t
     @assert N >= 1 
@@ -141,7 +141,7 @@ function forecast_lengths(model, t::AbstractArray{T,1}, data::AbstractArray{T,S}
     
     return forecasts
 end
-forecast_lengths(model, valid, N_t::Integer=300, type; kwargs...)  = forecast_lengths(model, valid.t, valid.data, N_t, type; kwargs...) 
+forecast_lengths(model, valid, type, N_t::Integer=300; kwargs...)  = forecast_lengths(model, valid.t, valid.data, type, N_t; kwargs...) 
 
 """
     average_forecast_length(predict, valid::NODEDataloader,N_t; λmax=0, mode="norm")
