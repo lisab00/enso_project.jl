@@ -38,6 +38,16 @@ function plot_data_split_predictions(predictions::Matrix, data::Matrix, splits::
     plot(subplots..., layout=(2,3), size=(1200,800))
 end
 
+"""
+    plot_loss_evolution(loss::Vector, splits::Vector)
+
+    Bar plot of the training data in % versus the validation loss.
+    Splits contains the percentages to be considered on the x-axis
+"""
+
+function plot_loss_evolution(loss::Vector, splits::Vector)
+    bar(splits, loss, xlabel= "Training Data in %", ylabel="Validation Loss", label ="", title="Validation Loss vs. Training Data Size")
+end
 
 """
     forecast_δ(prediction::AbstractArray{T,N}, truth::AbstractArray{T,N}, mode::String="both") where {T,N}
