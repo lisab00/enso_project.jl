@@ -82,23 +82,29 @@ function cross_validate_esn(train_data::Matrix, val_data::Matrix, param_grid::Ve
 end
 
 """
-    plot_prediction(esn, Wₒᵤₜ, test_data)
+    esn_eval_pred(esn::ESN, W_out, data::Matrix)
+
+    given an ESN, its output layer W_out and a data matrix, evaluate the prediction of the ESN on the given data.
+"""
+function esn_eval_pred(esn::ESN, W_out, data::Matrix)
+    steps_to_predict = size(data,2)
+    prediction = esn(Generative(steps_to_predict), W_out)
+    return prediction[1,:]
+end
+
+"""
+    plot_esn_prediction(esn, Wₒᵤₜ, test_data, data_name::String)
 
 Given an Echo State Network, plot its predictions versus the given test set.
+data_name is used to label the plot correctly
 """
-function plot_prediction(esn::ESN, Wₒᵤₜ, test_data::Matrix)
-    steps_to_predict = size(test_data, 2)
-    prediction = esn(Generative(steps_to_predict), Wₒᵤₜ)
+function plot_esn_prediction(esn::ESN, W_out, data::Matrix, data_name::String)
+    prediction = esn_eval_pred(esn, W_out, data)
     
     label = ["actual" "predicted"]
-    times =  collect(0:steps_to_predict)[1:end-1]
+    times =  collect(0:size(data,2))[1:end-1]
 
-    subplots = []
-    for i in eachindex(test_data[:,1])
-        push!(subplots, plot(times, [test_data[i,:], prediction[i, :]], label=label, ylabel="feature $i"))
-    end
-
-    plot(subplots..., layout = (length(subplots), 1), size = (1100, 800))
+    plot(times, [data[1,:], prediction], label=label, ylabel="ONI", xlabel="Months", title="Prediction of ENSO using an ESN on $data_name")
 end
 
 """
