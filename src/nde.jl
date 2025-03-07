@@ -56,6 +56,32 @@ function (samp::RandomSampler)(results, i)
     Dict([key => rand(samp.par_dic[key]) for key in samp.par_names]...)
 end 
 
+"""
+    setup_nn(N_weights, N_hidden_layers, act, seed)
+
+Setup a NDE with weights 'N_weights', activation function 'act', number of hidden layers 'N_hidden_layers'.
+For reproducibility when choosing initial parameters for the network set random 'seed'.
+"""
+function setup_nn(N_weights::Int64, N_hidden_layers::Int64, activation::Function, seed::Int64)
+    Random.seed!(seed)
+    hidden_layers = [Flux.Dense(N_weights, N_weights, activation) for i=1:N_hidden_layers]
+    nn = Chain(Flux.Dense(5, N_weights, activation), hidden_layers...,  Flux.Dense(N_weights, 5)) 
+    p, re_nn = Flux.destructure(nn)
+    return p, re_nn
+end
+
+"""
+    setup_node(pars, re_nn, u0, dt)
+
+Setup NODE problem with parameters 'pars' of the neural network 're_nn' and intial value 'u0', time step 'dt'.
+"""
+function setup_node(p::Vector{Any}, re_nn::Any, u0::Vector{Any}, dt::Float32)
+    neural_ode(u, p, t) = re_nn(p)(u)
+    basic_tgrad(u,p,t) = zero(u)
+    odefunc = SciMLBase.ODEFunction{false}(neural_ode,tgrad=basic_tgrad)
+    node_prob = SciMLBase.ODEProblem(odefunc, u0, (Float32(0.),Float32(dt)), p)
+    return node_prob
+end
 
 """
     train_node(training_data::NODEDataloader, validation_data::NODEDataloader, N_epochs, N_weights, N_hidden_layers, act, τ_max, η, seed)
@@ -66,19 +92,13 @@ For reproducibility of the results set random 'seed'.
 function train_node(train::Any, valid::Any, 
     N_epochs::Int64, N_weights::Int64, N_hidden_layers::Int64, activation::Function, τ_max::Int64, η::Float32, seed::Int64)
 
-    Random.seed!(seed)
+    # setup neural network based on network structure defined by the given hyperpars
+    p, re_nn = setup_nn(N_weights,N_hidden_layers,activation,seed)
+
+    # define NODE problem
     u0 = Vector(train.data[:,1])
     dt = train.t[2] - train.t[1]
-
-    hidden_layers = [Flux.Dense(N_weights, N_weights, activation) for i=1:N_hidden_layers]
-    nn = Chain(Flux.Dense(5, N_weights, activation), hidden_layers...,  Flux.Dense(N_weights, 5)) 
-    p, re_nn = Flux.destructure(nn)
-
-    neural_ode(u, p, t) = re_nn(p)(u)
-    
-    basic_tgrad(u,p,t) = zero(u)
-    odefunc = SciMLBase.ODEFunction{false}(neural_ode,tgrad=basic_tgrad)
-    node_prob = SciMLBase.ODEProblem(odefunc, u0, (Float32(0.),Float32(dt)), p)
+    node_prob = setup_node(p,re_nn,u0,dt)
     
     model = ChaoticNDE(node_prob)
 
