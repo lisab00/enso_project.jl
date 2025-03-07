@@ -20,6 +20,24 @@ function train_val_test_split(data::DataFrame; val_percent::Float64=0.15, test_p
     return train_data, val_data, test_data
 end
 
+"""
+    plot_data_split_predictions(predictions::Matrix, data::Matrix, splits::Array)
+
+    create one plot containing all subplots of different data splits.
+    Nrows corresponds to number of splits, Ncols is length of data to predict.
+    Splits: Array of integers corresponding to percentual splits
+"""
+function plot_data_split_predictions(predictions::Matrix, data::Matrix, splits::Array=[20,40,50,60,70,80])
+    subplots = []
+    label = ["actual" "predicted"]
+    times =  collect(0:size(data,2))[1:end-1]
+    for i in eachindex(predictions[:,1])
+        s = splits[i]
+        push!(subplots, plot(times, [data[1,:], predictions[i, :]], label=label,  title="Data Split $s %"))
+    end
+    plot(subplots..., layout=(2,3), size=(1200,800))
+end
+
 
 """
     forecast_δ(prediction::AbstractArray{T,N}, truth::AbstractArray{T,N}, mode::String="both") where {T,N}
