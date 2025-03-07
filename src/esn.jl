@@ -93,8 +93,7 @@ function plot_esn_prediction(esn::ESN, Wₒᵤₜ, data::Matrix)
     label = ["actual" "predicted"]
     times =  collect(0:steps_to_predict)[1:end-1]
 
-    plot(times, [data[1,:], prediction[1, :]], label=label, ylabel="ONI")
-
+    plot(times, [data[1,:], prediction[1, :]], label=label, ylabel="ONI", xlabel="Months", title="Prediction of ENSO using an Echo-State Network")
 end
 
 """
