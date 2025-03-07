@@ -75,7 +75,7 @@ end
 
 Setup NODE problem with parameters 'pars' of the neural network 're_nn' and intial value 'u0', time step 'dt'.
 """
-function setup_node(p::Vector{Any}, re_nn::Any, u0::Vector{Any}, dt::Float32)
+function setup_node(p::Vector{Float32}, re_nn::Any, u0::Vector{Float32}, dt::Float32)
     neural_ode(u, p, t) = re_nn(p)(u)
     basic_tgrad(u,p,t) = zero(u)
     odefunc = SciMLBase.ODEFunction{false}(neural_ode,tgrad=basic_tgrad)
@@ -84,7 +84,7 @@ function setup_node(p::Vector{Any}, re_nn::Any, u0::Vector{Any}, dt::Float32)
 end
 
 """
-    train_node(training_data::NODEDataloader, validation_data::NODEDataloader, N_epochs, N_weights, N_hidden_layers, act, τ_max, η, seed)
+    train_node(training_data::NODEData, validation_data::NODEData, N_epochs, N_weights, N_hidden_layers, act, τ_max, η, seed)
 
 Train the NDE with weights 'N_weights', activation function 'act', until integration length 'τ_max' with learning rate 'η'. 
 For reproducibility of the results set random 'seed'.
@@ -135,7 +135,7 @@ function train_node(train::Any, valid::Any,
 end
 
 """
-    train_and_validate_node(training_data::NODEDataloader, validation_data::NODEDataloader, N_epochs, N_weights, N_hidden_layers, act, τ_max, η, seed)
+    train_and_validate_node(training_data::NODEData, validation_data::NODEData, N_epochs, N_weights, N_hidden_layers, act, τ_max, η, seed)
 
 Sample randomly 'N_samples' hyperparameter configs for the NDE and train the NDE for each config over 'N_epochs' epochs.
 For reproducibility of the results set random seed for each hyperparameter sample from given 'seeds'.
@@ -178,5 +178,21 @@ function train_and_validate_node(train::Any, valid::Any,
     opt_pars = opt_ps[opt_loss[2]]
 
     return opt_loss, opt_hpars, opt_pars
+end
+
+"""
+    predict_node(model, test::NODEData, data_name)
+
+Given an optimal NDE 'model', return and plot its prediction on the given test set 'test'.
+'data_name' is used to label the plot correctly.
+"""
+function predict_node(m::ChaoticNDE, test::Any, data_name::String)
+    prediction = model((test.t,test.data))
+    
+    label = ["actual" "predicted"]
+
+    plt = plot(test.t, [test.data[1,:], prediction[1,:]], label=label, ylabel="SST", xlabel="Months", title="Prediction of NDE on $data_name")
+    display(plt)
+    return prediction[1,:]
 end
 
