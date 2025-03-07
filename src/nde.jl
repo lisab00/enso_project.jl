@@ -56,16 +56,6 @@ function (samp::RandomSampler)(results, i)
     Dict([key => rand(samp.par_dic[key]) for key in samp.par_names]...)
 end 
 
-"""
-    plot_node(model, data)
-
-Given a Chaotic Neural Differential Equation, plot the model's output compared to the actual data.
-"""
-function plot_node(m::ChaoticNDE, ndedata::Any)
-    plt = plot(ndedata.t, m((ndedata.t, ndedata[1][2]))', label="Neural ODE", xlabel="Time")
-    plot!(plt, ndedata.t, ndedata.data', label="Actual Data",ylims=[-4,4], linestyle = :dash, linecolor = [1 2 3 4 5])
-    display(plt)
-end
 
 """
     train_node(training_data::NODEDataloader, validation_data::NODEDataloader, N_epochs, N_weights, N_hidden_layers, act, τ_max, η, seed)
@@ -93,13 +83,15 @@ function train_node(train::Any, valid::Any,
     model = ChaoticNDE(node_prob)
 
     loss = Flux.Losses.mse
+
     opt = Flux.AdamW(η)
     opt_state = Optimisers.setup(opt, model)
 
     N_epochs = ceil(N_epochs)
 
     for i_τ = 2:τ_max
-        println("starting training with N_EPOCHS= ",N_epochs, " - N_weights=",N_weights, " - activation=",activation, " - η=",η)
+        println("starting training with N_EPOCHS= ",N_epochs, " - N_weights=",N_weights, " - N_hidden_layers=",N_hidden_layers,
+         " - activation=",activation, " - τ_max=",τ_max, " - η=",η)
         N_epochs_i = i_τ == 2 ? 2*Int(ceil(N_epochs/τ_max)) : ceil(N_epochs/τ_max) # N_epochs sets the total amount of epochs 
         
         train_i = NODEData.NODEDataloader(train, i_τ)
@@ -111,17 +103,15 @@ function train_node(train::Any, valid::Any,
             end 
 
             if (i_e % 5) == 0  # reduce the learning rate every 5 epochs
-                #global η /= 2
                 η /= 2
                 Flux.adjust!(opt_state, η)
             end
         end
     end
 
-    plot_node(model, valid)
-
-    #return ChaoticNDETools.average_forecast_length(model, valid, 300; λ_max=λ_max), p
-    return p, loss(model((valid.t,valid.data)), valid.data) # return optimal parameters and MSE of the model 
+    println("Validation MSE = ",loss(model((valid.t,valid.data)), valid.data)) # record MSE of the hyperpar config
+   
+    return model.p, loss(model((valid.t,valid.data)), valid.data)  # return optimal parameters, MSE on validation set
 end
 
 """
@@ -155,17 +145,18 @@ function train_and_validate_node(train::Any, valid::Any,
         end
 
         # Training 
-        p, mse = train_node(train, valid, N_epochs, N_weights, N_hidden_layers, activation, τ_max, η, seeds[i])
-        push!(opt_ps, p)
+        mod_p, mse = train_node(train, valid, N_epochs, N_weights, N_hidden_layers, activation, τ_max, η, seeds[i])
+        push!(opt_ps, mod_p)
         push!(valid_losses, mse)
     end
 
     # Validating
     opt_loss = findmin(valid_losses)
+
     Random.seed!(seeds[opt_loss[2]])
     opt_hpars = sampler(seeds[opt_loss[2]],opt_loss[2])
-    #opt_pars = opt_ps[opt_loss[2]]
+    opt_pars = opt_ps[opt_loss[2]]
 
-    return opt_loss, opt_hpars#, opt_pars
+    return opt_loss, opt_hpars, opt_pars
 end
 
