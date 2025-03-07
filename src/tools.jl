@@ -60,21 +60,28 @@ function plot_error_curve(errors::Matrix, threshold::Float64)
     hline!([threshold], linestyle=:dash, color=:red, label="Threshold")
 end
 
+
 """
-    forecast_δ(prediction::AbstractArray{T,N}, truth::AbstractArray{T,N}, mode::String="both") where {T,N}
+    forecast_δ_1D(prediction::AbstractArray{T,N}, truth::AbstractArray{T,N}, mode::String="both") where {T,N}
 
 Assumes that the last dimension of the input arrays is the time dimension and `N_t` long. 
 Returns an `N_t` long array, judging how accurate the prediction is. 
+Adapted such that it is possible to only consider the prediction's and truth's first dimension for calculation.
 
 Supported modes: 
 * `"mean"`: mean between the arrays
 * `"maximum"`: maximum norm 
 * `"norm"`: normalized, similar to the metric used in Pathak et al 
 """
-function forecast_δ(prediction::AbstractArray{T,N}, truth::AbstractArray{T,N}, mode::String="norm") where {T,N}
+function forecast_δ_1D(prediction::AbstractArray{T,N}, truth::AbstractArray{T,N}, mode::String="norm", type::String) where {T,N}
 
     if !(mode in ["mean","largest","both","norm"])
         error("mode has to be either 'mean', 'largest' or 'both', 'norm'.")
+    end
+
+    if type == "1D"
+        prediction = prediction[1,:]
+        truth = truth[1,:]
     end
 
     δ = abs.(prediction .- truth)
@@ -96,7 +103,7 @@ end
 Returns the forecast lengths of predictions on a NODEDataloader set (should be valid or test set) given a `(t, u0) -> prediction` function. 
     `N_t` is the length of each forecast, has to be larger than the expected forecast length. If a `λmax` is given, the results are scaled with it (and `dt``)
 """
-function forecast_lengths(model, t::AbstractArray{T,1}, data::AbstractArray{T,S}, N_t::Integer; λ_max=0, mode="norm", threshold=0.4, output_data::Union{Nothing, AbstractArray{T,S}}=nothing) where {T,S}
+function forecast_lengths(model, t::AbstractArray{T,1}, data::AbstractArray{T,S}, N_t::Integer, type::String; λ_max=0, mode="norm", threshold=0.4, output_data::Union{Nothing, AbstractArray{T,S}}=nothing) where {T,S}
     
     N = length(t) - N_t
     @assert N >= 1 
@@ -116,7 +123,7 @@ function forecast_lengths(model, t::AbstractArray{T,1}, data::AbstractArray{T,S}
     end
     
     for i=1:N 
-        δ = forecast_δ(model((t[i:i+N_t], data[..,i:i])), output_data[..,i:i+N_t], mode)
+        δ = forecast_δ_1D(model((t[i:i+N_t], data[..,i:i])), output_data[..,i:i+N_t], mode, type) # adapt to only first dimension
         δ = δ[:] # return a 1x1...xN_t array, so we flatten it here
         first_ind = findfirst(δ .> threshold) 
 
@@ -134,11 +141,12 @@ function forecast_lengths(model, t::AbstractArray{T,1}, data::AbstractArray{T,S}
     
     return forecasts
 end
-forecast_lengths(model, valid, N_t::Integer=300; kwargs...)  = forecast_lengths(model, valid.t, valid.data, N_t; kwargs...) 
+forecast_lengths(model, valid, N_t::Integer=300, type; kwargs...)  = forecast_lengths(model, valid.t, valid.data, N_t, type; kwargs...) 
 
 """
     average_forecast_length(predict, valid::NODEDataloader,N_t; λmax=0, mode="norm")
 
-Returns the average forecast length on a NODEDataloader set (should be valid or test set) given a `(t, u0) -> prediction` function. `N_t` is the length of each forecast, has to be larger than the expected forecast length. If a `λmax` is given, the results are scaled with it (and `dt``)
+Returns the average forecast length on a NODEDataloader set (should be valid or test set) given a `(t, u0) -> prediction` function. 
+`N_t` is the length of each forecast, has to be larger than the expected forecast length. If a `λmax` is given, the results are scaled with it (and `dt``)
 """
 average_forecast_length(args...; kwargs...)  = Statistics.mean(forecast_lengths(args...; kwargs...))
