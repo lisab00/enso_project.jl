@@ -78,7 +78,7 @@ function cross_validate_esn(train_data::Matrix, val_data::Matrix, param_grid::Ve
     )
     Wₒᵤₜ = train_esn!(esn, y, ridge_param)
     
-    return esn, Wₒᵤₜ
+    return esn, Wₒᵤₜ, best_loss
 end
 
 """
