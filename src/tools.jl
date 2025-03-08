@@ -123,7 +123,7 @@ function forecast_lengths(model, t::AbstractArray{T,1}, data::AbstractArray{T,S}
     end
     
     for i=1:N 
-        δ = forecast_δ_1D(model((t[i:i+N_t], data[..,i:i])), output_data[..,i:i+N_t], mode, type) # adapt to only first dimension
+        δ = forecast_δ_1D(model((t[i:i+N_t], data[..,i:i])), output_data[..,i:i+N_t], type, mode) # adapt to only first dimension
         δ = δ[:] # return a 1x1...xN_t array, so we flatten it here
         first_ind = findfirst(δ .> threshold) 
 

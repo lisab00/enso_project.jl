@@ -187,7 +187,7 @@ Given an optimal NDE 'model', return and plot its prediction on the given test s
 'data_name' is used to label the plot correctly.
 """
 function predict_node(m::ChaoticNDE, test::Any, data_name::String)
-    prediction = model((test.t,test.data))
+    prediction = m((test.t,test.data))
     
     label = ["actual" "predicted"]
 
