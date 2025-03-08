@@ -62,10 +62,15 @@ end
 Setup a NDE with weights 'N_weights', activation function 'act', number of hidden layers 'N_hidden_layers'.
 For reproducibility when choosing initial parameters for the network set random 'seed'.
 """
-function setup_nn(N_weights::Int64, N_hidden_layers::Int64, activation::Function, seed::Int64)
+function setup_nn(N_weights::Int64, N_hidden_layers::Int64, activation::String, seed::Int64)
+    if activation == "relu"
+        act_func = relu 
+    else
+        act_func = swish
+    end
     Random.seed!(seed)
-    hidden_layers = [Flux.Dense(N_weights, N_weights, activation) for i=1:N_hidden_layers]
-    nn = Chain(Flux.Dense(5, N_weights, activation), hidden_layers...,  Flux.Dense(N_weights, 5)) 
+    hidden_layers = [Flux.Dense(N_weights, N_weights, act_func) for i=1:N_hidden_layers]
+    nn = Chain(Flux.Dense(5, N_weights, act_func), hidden_layers...,  Flux.Dense(N_weights, 5)) 
     p, re_nn = Flux.destructure(nn)
     return p, re_nn
 end
@@ -90,7 +95,7 @@ Train the NDE with weights 'N_weights', activation function 'act', until integra
 For reproducibility of the results set random 'seed'.
 """
 function train_node(train::Any, valid::Any, 
-    N_epochs::Int64, N_weights::Int64, N_hidden_layers::Int64, activation::Function, τ_max::Int64, η::Float32, seed::Int64)
+    N_epochs::Int64, N_weights::Int64, N_hidden_layers::Int64, activation::String, τ_max::Int64, η::Float32, seed::Int64)
 
     # setup neural network based on network structure defined by the given hyperpars
     p, re_nn = setup_nn(N_weights,N_hidden_layers,activation,seed)
@@ -155,17 +160,11 @@ function train_and_validate_node(train::Any, valid::Any,
         N_weights = pars[:N_weights]
         N_hidden_layers = pars[:N_hidden_layers]
         τ_max = pars[:τ_max]
-        act_func = pars[:activation]
+        act = pars[:activation]
         η = pars[:eta]
 
-        if act_func == "relu"
-            activation = relu 
-        else
-            activation = swish
-        end
-
         # Training 
-        mod_p, mse = train_node(train, valid, N_epochs, N_weights, N_hidden_layers, activation, τ_max, η, seeds[i])
+        mod_p, mse = train_node(train, valid, N_epochs, N_weights, N_hidden_layers, act, τ_max, η, seeds[i])
         push!(opt_ps, mod_p)
         push!(valid_losses, mse)
     end
@@ -204,18 +203,12 @@ on both the training and validation data together.
 For reproducibility of the results set random 'seed'.
 """
 function retrain_node(train::Any, valid::Any, 
-    N_epochs::Int64, N_weights::Int64, N_hidden_layers::Int64, act_func::Function, τ_max::Int64, η::Float32, seed::Int64)
+    N_epochs::Int64, N_weights::Int64, N_hidden_layers::Int64, activation::String, τ_max::Int64, η::Float32, seed::Int64)
 
     # Merge train and validation data
     data = hcat(train.data, valid.data)
     time = Float32.(0:size(data,2)-1)
     trainvalid = NODEDataloader(Array(data), time, 2)
-
-    if act_func == "relu"
-        activation = relu 
-    else
-        activation = swish
-    end
 
     # Training 
     mod_p, mse = train_node(trainvalid, trainvalid, N_epochs, N_weights, N_hidden_layers, activation, τ_max, η, seed)
