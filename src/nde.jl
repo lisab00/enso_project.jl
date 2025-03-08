@@ -196,3 +196,32 @@ function predict_node(m::ChaoticNDE, test::Any, data_name::String)
     return prediction[1,:]
 end
 
+"""
+    retrain_node(training_data::NODEData, validation_data::NODEData, N_epochs, N_weights, N_hidden_layers, act, τ_max, η, seed)
+
+Rerain the NDE with optimal hyperparameters 'N_weights', 'N_hidden_layers', 'act', until integration length 'τ_max' with learning rate 'η'
+on both the training and validation data together.
+For reproducibility of the results set random 'seed'.
+"""
+function retrain_node(train::Any, valid::Any, 
+    N_epochs::Int64, N_weights::Int64, N_hidden_layers::Int64, act_func::Function, τ_max::Int64, η::Float32, seed::Int64)
+
+    # Merge train and validation data
+    data = hcat(train.data, valid.data)
+    time = Float32.(0:size(data,2)-1)
+    trainvalid = NODEDataloader(Array(data), time, 2)
+
+    if act_func == "relu"
+        activation = relu 
+    else
+        activation = swish
+    end
+
+    # Training 
+    mod_p, mse = train_node(trainvalid, trainvalid, N_epochs, N_weights, N_hidden_layers, activation, τ_max, η, seed)
+    
+    return mod_p, mse
+
+end
+
+
