@@ -1,3 +1,18 @@
+"""
+    ESNHyperparams <: AbstractESNHyperparams
+
+Hyperparameters for an Echo State Network.    
+
+# Fields: 
+
+* `reservoir_size` number of nodes in the reservoir
+* `spectral radius` spectral radius of the reservoir matrix
+* `sparsity` regulates number of connections in the reservoir
+* `input_scale` scaling of the input layer
+* `ridge_param`
+
+"""
+
 abstract type AbstractESNHyperparams end
 
 """
