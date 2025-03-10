@@ -75,7 +75,7 @@ Supported modes:
 """
 function forecast_δ_1D(prediction::AbstractArray{T,N}, truth::AbstractArray{T,N}, type::String, mode::String="norm") where {T,N}
 
-    if !(mode in ["mean","largest","both","norm"])
+    if !(mode in ["mean","largest","both","norm", "abs"])
         error("mode has to be either 'mean', 'largest' or 'both', 'norm'.")
     end
 
@@ -92,6 +92,8 @@ function forecast_δ_1D(prediction::AbstractArray{T,N}, truth::AbstractArray{T,N
         return maximum(δ, dims=1:(N-1))
     elseif mode == "norm"
         return sqrt.(sum((prediction .- truth).^2, dims=(1:(N-1))))./sqrt(mean(sum(abs2, truth, dims=(1:(N-1)))))
+    elseif mode =="abs"
+        return abs.(prediction .- truth)
     else
         return (Statistics.mean(δ, dims=1:(N-1)), maximum(δ, dims=1))
     end
