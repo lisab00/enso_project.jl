@@ -72,6 +72,7 @@ Supported modes:
 * `"mean"`: mean between the arrays
 * `"maximum"`: maximum norm 
 * `"norm"`: normalized, similar to the metric used in Pathak et al 
+* `"abs`: absolute difference between arrays
 """
 function forecast_δ_1D(prediction::AbstractArray{T,N}, truth::AbstractArray{T,N}, type::String, mode::String="norm") where {T,N}
 
