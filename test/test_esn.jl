@@ -1,6 +1,6 @@
 # test that created parameter grid is of correct size
 @testset "parameter grid" begin
-    grid = create_param_grid([100, 200], [1.0], [0.1],  [0.1],  [0.01])
+    grid = enso_project.create_param_grid([100, 200], [1.0], [0.1],  [0.1],  [0.01])
     @test length(grid) == 2
 end
 
