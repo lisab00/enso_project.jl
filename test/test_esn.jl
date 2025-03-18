@@ -26,3 +26,16 @@ end
 
     @test esn != esn_2
 end
+
+# test that esn prediction has correct length
+@testset "esn prediction" begin
+    test_data = rand(5,7)
+    train_data = rand(5,5)
+
+    esn = ESN(train_data, size(train_data, 1), 100; reservoir=rand_sparse(; radius=1.0, sparsity=0.1),
+    input_layer=scaled_rand(; scaling=0.1),)
+    W_out = enso_project.train_esn!(esn, train_data, 0.1)
+
+    pred = enso_project.esn_eval_pred(esn, W_out, test_data)
+    @test size(pred, 1) == size(test_data, 2)
+end
