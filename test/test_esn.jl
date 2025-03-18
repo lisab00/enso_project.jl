@@ -1,14 +1,10 @@
-"""
-test that created parameter grid is of correct size
-"""
+# test that created parameter grid is of correct size
 @testset "parameter grid" begin
     grid = create_param_grid([100, 200], [1.0], [0.1],  [0.1],  [0.01])
     @test length(grid) == 2
 end
 
-"""
-test that cross validation returns objects of correct types
-"""
+# test that cross validation returns objects of correct types
 @testset "cross validate ESN" begin
     train_data = rand(5,5)
     val_data = rand(5,3)
@@ -20,9 +16,7 @@ test that cross validation returns objects of correct types
 
 end
 
-"""
-test that training procedure actually changes the output weights
-"""
+# test that training procedure actually changes the output weights
 @testset "train ESN" begin
     train_data = rand(5,5)
     esn = ESN(train_data, size(train_data, 1), 100; reservoir=rand_sparse(; radius=1.0, sparsity=0.1),
