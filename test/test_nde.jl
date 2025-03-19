@@ -1,6 +1,7 @@
 using OrdinaryDiffEq, SciMLSensitivity, Flux
 
 # test with a Lotka-Volterra system
+@testset "nde" begin
 begin
     N_T = 200
     N_SAMPLES = 2
@@ -79,7 +80,7 @@ model_opt = enso_project.ChaoticNDE(node_prob_opt)
 
 # check that nde prediction has correct size
 pred = enso_project.predict_node(model_opt, test, "")
-@test size(pred, 2) == size(test.data, 2)
+@test size(pred, 1) == size(test.data, 2)
 
 # check that random sampler returns object of correct type and length, and each value is from the appropriate range
 sampler = enso_project.RandomSampler(value1=1:5, value2=6:10, value3=11:15, value4=16:20)
@@ -88,3 +89,4 @@ ranges = values(values(sampler.par_dic)[collect(keys(sample))])
 @test typeof(sample) <: Dict
 @test length(sample) == length(sampler.par_names)
 @test sum(.!in.(values(sample),ranges)) == 0
+end
