@@ -6,7 +6,7 @@ begin
     N_SAMPLES = 2
     N_EPOCHS = 10
     τ_MAX = 2
-    η = 0.001
+    η = Float32.(0.001)
     N_WEIGHTS = 5
     N_HIDDEN_LAYERS = 1
     ACT = "swish"
@@ -64,6 +64,9 @@ pgrad = g[1][:p]
 @test sum(isnan.(pgrad)) == 0
 @test sum(isinf.(pgrad)) == 0 
 @test sum(isnothing.(pgrad)) == 0 
+
+# test if argument is of type Float32
+@test typeof(η) <: Float32
 
 # check if training procedure is indeed making changes to the model parameters
 p_opt, loss_valid = enso_project.train_node(train, valid, N_EPOCHS, N_WEIGHTS, N_HIDDEN_LAYERS, ACT, τ_MAX, η, seed)
