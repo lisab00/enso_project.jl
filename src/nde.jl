@@ -119,7 +119,7 @@ function train_node(train::Any, valid::Any,
          " - activation=",activation, " - τ_max=",τ_max, " - η=",η)
         N_epochs_i = i_τ == 2 ? 2*Int(ceil(N_epochs/τ_max)) : ceil(N_epochs/τ_max) # N_epochs sets the total amount of epochs 
         
-        train_i = NODEData.NODEDataloader(train, i_τ)
+        train_i = NODEData.NODEDataloader(train.t,train.data, i_τ)
         for i_e = 1:N_epochs_i
 
             Flux.train!(model, train_i, opt_state) do m, t, x
