@@ -39,7 +39,7 @@ t_test = Float32.(5.:dt:10.)
 test = (t = t_test, data = Float32.(Array(sol(t_test))))
 
 # test if everything compiles and runs without errors 
-p, re_nn = enso_project.setup_nn(N_WEIGHTS,N_HIDDEN_LAYERS,ACT,seed) # setup neural network 
+p, re_nn = enso_project.setup_nn(N_WEIGHTS,N_HIDDEN_LAYERS,ACT,seed,length(x0)) # setup neural network 
 node_prob = enso_project.setup_node(p,re_nn,x0,dt) # define NODE problem
 
 model = enso_project.ChaoticNDE(node_prob)
