@@ -78,7 +78,7 @@ model_opt = enso_project.ChaoticNDE(node_prob_opt)
 @test loss(model, (train.t,train.data), train.data) >= loss(model_opt, (train.t,train.data), train.data)
 
 # check that nde prediction has correct size
-pred = predict_node(model_opt, test, "")
+pred = enso_project.predict_node(model_opt, test, "")
 @test size(pred, 2) == size(test.data, 2)
 
 # check that random sampler returns object of correct type and length, and each value is from the appropriate range
