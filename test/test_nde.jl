@@ -25,7 +25,7 @@ begin
     γ = 0.8
     δ = 1.8
     p = [α, β, γ, δ] 
-    tspan = (0.,10.)
+    tspan = (0.,15.)
     
     x0 = Float32.([0.44249296, 4.6280594])
     
@@ -35,7 +35,9 @@ end
 
 t_train = Float32.(0:dt:5.)
 train = (t = t_train, data = Float32.(Array(sol(t_train))))
-t_test = Float32.(5.:dt:10.)
+t_valid = Float32.(5.:dt:10.)
+valid = (t = t_valid, data = Float32.(Array(sol(t_valid))))
+t_test = Float32.(10.:dt:15.)
 test = (t = t_test, data = Float32.(Array(sol(t_test))))
 
 # test if arguments are of type Float32
