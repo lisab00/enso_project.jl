@@ -11,7 +11,7 @@ begin
     N_HIDDEN_LAYERS = 1
     ACT = "swish"
     seed = 1903
-    dt = 0.1
+    dt = Float32.(0.1)
 end 
 
 begin 
@@ -27,7 +27,7 @@ begin
     p = [α, β, γ, δ] 
     tspan = (0.,10.)
     
-    x0 = [0.44249296, 4.6280594]
+    x0 = Float32.([0.44249296, 4.6280594])
     
     prob = ODEProblem(lotka_volterra, x0, tspan, p) 
     sol = solve(prob, Tsit5(), saveat=dt)
@@ -37,6 +37,10 @@ t_train = Float32.(0:dt:5.)
 train = (t = t_train, data = Float32.(Array(sol(t_train))))
 t_test = Float32.(5.:dt:10.)
 test = (t = t_test, data = Float32.(Array(sol(t_test))))
+
+# test if arguments are of type Float32
+@test typeof(x0) <: Float32
+@test typeof(dt) <: Float32
 
 # test if everything compiles and runs without errors 
 p, re_nn = enso_project.setup_nn(N_WEIGHTS,N_HIDDEN_LAYERS,ACT,seed,length(x0)) # setup neural network 
