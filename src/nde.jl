@@ -57,12 +57,12 @@ function (samp::RandomSampler)(results, i)
 end 
 
 """
-    setup_nn(N_weights, N_hidden_layers, act, seed)
+    setup_nn(N_weights, N_hidden_layers, act, seed, dimension)
 
-Setup a NDE with weights 'N_weights', activation function 'act', number of hidden layers 'N_hidden_layers'.
+Setup a NDE with input and output layers of 'dim' nodes, with weights 'N_weights', activation function 'act', number of hidden layers 'N_hidden_layers'.
 For reproducibility when choosing initial parameters for the network set random 'seed'.
 """
-function setup_nn(N_weights::Int64, N_hidden_layers::Int64, activation::String, seed::Int64)
+function setup_nn(N_weights::Int64, N_hidden_layers::Int64, activation::String, seed::Int64, dim::Int64)
     if activation == "relu"
         act_func = relu 
     else
@@ -70,7 +70,7 @@ function setup_nn(N_weights::Int64, N_hidden_layers::Int64, activation::String, 
     end
     Random.seed!(seed)
     hidden_layers = [Flux.Dense(N_weights, N_weights, act_func) for i=1:N_hidden_layers]
-    nn = Chain(Flux.Dense(5, N_weights, act_func), hidden_layers...,  Flux.Dense(N_weights, 5)) 
+    nn = Chain(Flux.Dense(dim, N_weights, act_func), hidden_layers...,  Flux.Dense(N_weights, dim)) 
     p, re_nn = Flux.destructure(nn)
     return p, re_nn
 end
@@ -98,7 +98,7 @@ function train_node(train::Any, valid::Any,
     N_epochs::Int64, N_weights::Int64, N_hidden_layers::Int64, activation::String, τ_max::Int64, η::Float32, seed::Int64)
 
     # setup neural network based on network structure defined by the given hyperpars
-    p, re_nn = setup_nn(N_weights,N_hidden_layers,activation,seed)
+    p, re_nn = setup_nn(N_weights,N_hidden_layers,activation,seed,length(train.data[:,1]))
 
     # define NODE problem
     u0 = Vector(train.data[:,1])
