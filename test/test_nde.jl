@@ -42,7 +42,7 @@ t_test = Float32.(10.:dt:15.)
 test = (t = t_test, data = Float32.(Array(sol(t_test))))
 
 # test if arguments are of type Float32
-@test typeof(x0) <: Float32
+@test typeof(x0) <: Vector{Float32}
 @test typeof(dt) <: Float32
 
 # test if everything compiles and runs without errors 
