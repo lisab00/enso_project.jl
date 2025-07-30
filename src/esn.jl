@@ -31,7 +31,7 @@ end
 
 Given an Echo State Network, train it on the target sequence y_target and return the optimised output weights Wₒᵤₜ.
 """
-function train_esn!(esn::ESN, y_target::Matrix, ridge_param::Float64)
+function train_esn!(esn::ESN, y_target::AbstractMatrix, ridge_param::Float64)
     training_method = StandardRidge(ridge_param)
     return train(esn, y_target, training_method)
 end
@@ -41,7 +41,7 @@ end
 
 Do a grid search on the given param_grid to find the optimal hyperparameters.
 """
-function cross_validate_esn(train_data::Matrix, val_data::Matrix, param_grid::Vector)
+function cross_validate_esn(train_data::AbstractMatrix, val_data::AbstractMatrix, param_grid::Vector)
     best_loss = Inf
     best_params = nothing
 
@@ -101,7 +101,7 @@ end
 
     given an ESN, its output layer W_out and a data matrix, evaluate the prediction of the ESN on the given data.
 """
-function esn_eval_pred(esn::ESN, W_out, data::Matrix)
+function esn_eval_pred(esn::ESN, W_out, data::AbstractMatrix)
     steps_to_predict = size(data,2)
     prediction = esn(Generative(steps_to_predict), W_out)
     return prediction[1,:]
@@ -113,7 +113,7 @@ end
 Given an Echo State Network, plot its predictions versus the given test set.
 data_name is used to label the plot correctly
 """
-function plot_esn_prediction(esn::ESN, W_out, data::Matrix, data_name::String)
+function plot_esn_prediction(esn::ESN, W_out, data::AbstractMatrix, data_name::String)
     prediction = esn_eval_pred(esn, W_out, data)
     
     label = ["actual" "predicted"]
