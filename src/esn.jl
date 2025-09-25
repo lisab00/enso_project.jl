@@ -123,6 +123,44 @@ function plot_esn_prediction(esn::ESN, W_out, data::AbstractMatrix, data_name::S
 end
 
 """
+    function sample_lead_times(L::Int64, N::Int64, data::AbstractMatrix, train_size::Int64, initial_val_size::Int64, param_grid::Vector)
+    
+Create the datasets of predictions and test data, corresponding to starting N predictions with lead time L at different starting points.
+For each sample, an ESN is trained up until the starting point of the test set.
+
+# Inputs
+        - `L::Int64`: length of prediction (lead-time)
+        - `N::Int64`: sample size
+        - `data::AbstractMatrix`: embedded data
+        - `train_size::Int64`: size of the training set
+        - `initial_val_size::Int64`: initial size of the validation set. The validation set size is increased, when predictions are started from a later time step
+        - `param_grid::Vector`: hyperprm grid used for retraining of ESNs
+"""
+function sample_lead_times(L::Int64, N::Int64, data::AbstractMatrix, train_size::Int64, initial_val_size::Int64, param_grid::Vector)
+    datasets_test = zeros(N,L)
+    predictions = zeros(N,L)
+
+    for n in 0:(N-1)
+        # include data shift n
+        train_data = data[:, 1:train_size]
+        val_data = data[:, train_size+1:train_size+initial_val_size+n]
+        test_data = data[:, train_size+initial_val_size+n+1:train_size+initial_val_size+n+L]
+
+        # train
+        esn, W_out, val_loss = enso_project.cross_validate_esn(train_data, val_data, param_grid) 
+        prediction = enso_project.esn_eval_pred(esn, W_out, test_data)
+
+        # store 
+        datasets_test[n+1,:] = test_data[1,:]
+        predictions[n+1,:] = prediction
+
+        # progress control
+        println("Finished sample $(n+1)")
+    end
+    return predictions, datasets_test
+end
+
+"""
     create_param_grid(param_ranges:Array)
 
 Given an Array of the parameter ranges, create a parameter grid.

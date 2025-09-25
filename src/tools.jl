@@ -1,4 +1,20 @@
 """
+    function tde_with_negative_shift(data_1D)
+
+Create TDE with negative time shift.
+First use optimal_separated_de method, then manually embed data by -\tau.
+"""
+function tde_with_negative_shift(data_1D)
+    D, τ, E = optimal_separated_de(data_1D)
+    D = Matrix(D)
+    emb_dim = size(D, 2)
+    data_emb = embed(data_1D, emb_dim, -τ)
+    data_emb = Matrix(data_emb)
+    shift = (emb_dim-1)*τ
+    return data_emb[shift+1:end-τ,:], τ
+end
+
+"""
     train_val_test_split(data; num_val_months, num_test_months)
 
 Split the given data into training, validation, and test sets.
@@ -6,6 +22,28 @@ val_percent: number of time steps wanted in the validation set.
 test_percent: number of time steps wanted in the test set.
 """
 function train_val_test_split(data::DataFrame; val_percent::Float64=0.15, test_percent::Float64=0.15)
+    N = size(data, 1)
+    N_val = round(Int, val_percent*N)
+    N_test = round(Int, test_percent*N)
+    
+    ind1 = N - N_test - N_val
+    ind2 = N - N_test
+    
+    train_data = data[1:ind1, :]
+    val_data = data[ind1+1:ind2, :]
+    test_data = data[ind2+1:end, :]
+    
+    return train_data, val_data, test_data
+end
+
+"""
+    train_val_test_split(data; num_val_months, num_test_months)
+
+Split the given data into training, validation, and test sets.
+val_percent: number of time steps wanted in the validation set.
+test_percent: number of time steps wanted in the test set.
+"""
+function train_val_test_split(data::AbstractMatrix; val_percent::Float64=0.15, test_percent::Float64=0.15)
     N = size(data, 1)
     N_val = round(Int, val_percent*N)
     N_test = round(Int, test_percent*N)
@@ -153,3 +191,80 @@ Returns the average forecast length on a NODEDataloader set (should be valid or 
 `N_t` is the length of each forecast, has to be larger than the expected forecast length. If a `λmax` is given, the results are scaled with it (and `dt``)
 """
 average_forecast_length(args...; kwargs...)  = Statistics.mean(forecast_lengths(args...; kwargs...))
+
+
+"""
+    function hss(predictions::AbstractMatrix, test_data::AbstractMatrix)
+
+Measures accuracy of predictions (wrt randomly generated forecast). ENSO predicted if abs(ONI)>0.5. Compute ratio out of TP,TN,FP,FN.
+Is considered good if >0.5.
+Formula from paper "Long-term ENSO prediction with echo-state networks" by Hassanibesheli F. et al.
+
+# Arguments:
+    - `predicitons::AbstractMatrix`:  predictions, NxL matrix. N is sample size per lead time, L is all lead times considered
+    - `test_data::AbstractMatrix`: test data for each sample, NxL matrix.
+
+# Returns:
+    - `Vector`: HSS for each lead time, vector of length L
+"""
+function hss(predictions::AbstractMatrix, test_data::AbstractMatrix)
+
+    # predict event if indec > 0.5
+    events_pred = abs.(Int.(round.(predictions)))
+    events_true = abs.(Int.(round.(test_data)))
+
+    # compute TN
+    TN_mat = events_pred + events_true
+    TN = sum(TN_mat .== 0, dims=1)
+
+    # compute FP,FN,TP
+    compare = events_pred - events_true # matrix: 0 for TP, TN; 1 for FP, -1 for FN
+    FP = sum(compare .== 1, dims=1)
+    FN = sum(compare .==-1, dims=1)
+    TP = sum(compare .==0, dims=1) .- TN
+
+    N = TN + TP + FN + FP # should be sample size
+
+    # calculate formula
+    CRF = ((TP .+ FN) .* (TP .+ FP) .+ (TN .+ FN) .* (TN .+ FP)) ./ N
+    HSS = (TP .+ TN .- CRF) ./ (N .- CRF)
+    return HSS[1,:]
+end
+
+"""
+    function pcc(predictions::AbstractMatrix, test_data::AbstractMatrix)
+
+Compute the Pearson-Correlation-Coefficient between sample and test data for each lead time considered. I.e., PCC is computed between respective data columns.
+Is considered good, if > 0.5.
+
+# Arguments:
+    - `predicitons::AbstractMatrix`:  predictions, NxL matrix. N is sample size per lead time, L is all lead times considered
+    - `test_data::AbstractMatrix`: test data for each sample, NxL matrix.
+
+# Returns:
+    - `Vector`: PCC for each lead time, vector of length L
+"""
+function pcc(predictions::AbstractMatrix, test_data::AbstractMatrix)
+    L = size(predictions, 2)
+    return [cor(predictions[:,i], test_data[:,i]) for i in 1:L]
+end
+
+"""
+    function rmse(predictions::AbstractMatrix, test_data::AbstractMatrix)
+       
+compute the rmse between predicitons and test data for each lead time. Is considered good if smaller 1.4.
+
+# Arguments:
+    - `predicitons::AbstractMatrix`: predictions, NxL matrix. N is sample size per lead time, L is all lead times considered
+    - `test_data::AbstractMatrix`: test data for each sample, NxL matrix.
+
+# Returns:
+    - `Vector`: RMSE for each lead time, vector of length L
+"""
+function rmse(predictions::AbstractMatrix, test_data::AbstractMatrix)
+    N, L = size(predictions, 1), size(predictions,2)
+    sse_vals = zeros(N,L)
+    sse_vals = (predictions .- test_data).^2
+    rmse = sqrt.(sum(sse_vals, dims=1) ./N)
+    return rmse[1,:]
+end
