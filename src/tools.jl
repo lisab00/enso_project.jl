@@ -193,6 +193,7 @@ Returns the average forecast length on a NODEDataloader set (should be valid or 
 average_forecast_length(args...; kwargs...)  = Statistics.mean(forecast_lengths(args...; kwargs...))
 
 
+# error metricsa for ENSO
 """
     function hss(predictions::AbstractMatrix, test_data::AbstractMatrix)
 
@@ -253,6 +254,7 @@ end
     function rmse(predictions::AbstractMatrix, test_data::AbstractMatrix)
        
 compute the rmse between predicitons and test data for each lead time. Is considered good if smaller 1.4.
+Version for 1D datasets (ENSO)
 
 # Arguments:
     - `predicitons::AbstractMatrix`: predictions, NxL matrix. N is sample size per lead time, L is all lead times considered
@@ -267,4 +269,151 @@ function rmse(predictions::AbstractMatrix, test_data::AbstractMatrix)
     sse_vals = (predictions .- test_data).^2
     rmse = sqrt.(sum(sse_vals, dims=1) ./N)
     return rmse[1,:]
+end
+
+
+# error metrics for MJO
+"""
+    function rmse(predictions::AbstractMatrix, test_data::AbstractMatrix, predictions2::AbstractMatrix, test_data2::AbstractMatrix)
+       
+compute the rmse between predicitons and test data for each lead time. Is considered good if smaller 1.4.
+Version for 2D data sets (MJO)
+
+# Arguments:
+    - `predicitons::AbstractMatrix`: predictions, NxL matrix. N is sample size per lead time, L is all lead times considered
+    - `test_data::AbstractMatrix`: test data for each sample, NxL matrix.
+    - `predicitons2::AbstractMatrix`: predictions of second component, NxL matrix. N is sample size per lead time, L is all lead times considered
+    - `test_data2::AbstractMatrix`: test data of second component for each sample, NxL matrix.
+
+# Returns:
+    - `Vector`: RMSE for each lead time, vector of length L
+"""
+function rmse(predictions::AbstractMatrix, test_data::AbstractMatrix, predictions2::AbstractMatrix, test_data2::AbstractMatrix)
+    N, L = size(predictions, 1), size(predictions,2)
+    sse_vals = zeros(N,L)
+    sse_vals = (predictions .- test_data).^2 .+ (predictions2 .- test_data2).^2
+    rmse = sqrt.(sum(sse_vals, dims=1) ./N)
+    return rmse[1,:]
+end
+
+"""
+    function bivariate_corr(predictions::AbstractMatrix, test_data::AbstractMatrix, predictions2::AbstractMatrix, test_data2::AbstractMatrix)
+
+Compute the bivariate correlation coefficient between sample and test data for each lead time considered.
+Inputs are N×L matrices: rows = samples, cols = lead times.
+Formula from paper: "Improving the Predictability of the Madden-Julian Oscillation at Subseasonal Scales With Gaussian Process Models" by Chen H. et al.
+
+# Arguments:
+    - `predicitons::AbstractMatrix`:  predictions, NxL matrix. N is sample size per lead time, L is all lead times considered
+    - `test_data::AbstractMatrix`: test data for each sample, NxL matrix.
+    - `predicitons2::AbstractMatrix`:  predictions of second component, NxL matrix. N is sample size per lead time, L is all lead times considered
+    - `test_data2::AbstractMatrix`: test data of second component for each sample, NxL matrix.
+
+# Returns:
+    - `Vector`: PCC for each lead time, vector of length L
+"""
+function bivariate_corr(predictions::AbstractMatrix, test_data::AbstractMatrix, predictions2::AbstractMatrix, test_data2::AbstractMatrix)
+
+    L = size(test_data, 2)
+    corrs = zeros(L) # obtain correlation for each lead time
+
+    for l in 1:L
+        # vectors of data at lead time l
+        z1 = test_data[:,l]
+        z2 = test_data2[:,l]
+        zh1 = predictions[:,l]
+        zh2 = predictions2[:,l]
+
+        num   = sum(z1 .* zh1 .+ z2 .* zh2) # element-wise product summed over sample N
+        denom = sqrt(sum(z1.^2 .+ z2.^2)) * sqrt(sum(zh1.^2 .+ zh2.^2))
+
+        corrs[l] = num / denom
+    end
+
+    return corrs
+end
+
+"""
+    function hss(pred1::AbstractMatrix, pred2::AbstractMatrix, true1::AbstractMatrix, true2::AbstractMatrix)
+
+Computes hss scores for MJO phase i.
+Formula from paper "Improving the Predictability of the Madden-Julian Oscillation at Subseasonal Scales With Gaussian Process Models" by Chen H. et al.
+
+# Arguments:
+    - `pred1::AbstractMatrix`:  predictions of pc1, NxL matrix. N is sample size per lead time, L is all lead times considered
+    - `pred2::AbstractMatrix`:  predictions of pc2, NxL matrix. N is sample size per lead time, L is all lead times considered
+    - `true1::AbstractMatrix`: test data for each sample of pc1, NxL matrix.
+    - `true2::AbstractMatrix`: test data for each sample of pc2, NxL matrix.
+
+# Returns:
+    - `Vector`: HSS of phase i for each lead time, vector of length L.
+"""
+function hss_i(i::Int64, pred1::AbstractMatrix, pred2::AbstractMatrix, true1::AbstractMatrix, true2::AbstractMatrix)
+    N, L = size(pred1,1), size(pred1, 2)
+    hss_scores = zeros(L) # store hss of phase i for each lead time
+
+    for l in 1:L
+        # needed to compute hss score of sample
+        a, b, c, d = 0, 0, 0, 0
+        
+        # sample and truth vectors of length N
+        z1, z2 = true1[:,l], true2[:,l]
+        zh1, zh2 = pred1[:,l], pred2[:,l]
+
+        # quantities needed to determine phases
+        angles_true, r_true = atan.(z1, z2), sqrt.(z1.^2 + z2.^2)
+        anglesh, rh = atan.(zh1, zh2), sqrt.(zh1.^2 + zh2.^2)
+
+        for n in 1:N # for each sample item
+            angle_true = angles_true[n]
+            angleh = anglesh[n]
+
+            # check whether phase i is the correct phase
+            if i == 0
+                ph_i = r_true[n] < 1
+                ph_i_pred = rh[n] < 1 
+            else 
+                left = -π + π/4*(i-1)
+                right = -3/4*π + π/4*(i-1)
+                ph_i = (angle_true > left) && (angle_true <= right)
+                ph_i_pred = (angleh > left) && (angleh <= right)
+            end
+            a += (ph_i && ph_i_pred) ? 1 : 0 # TP 
+            d += (!ph_i && !ph_i_pred) ? 1 : 0 # TN 
+            c += (ph_i && !ph_i_pred) ? 1 : 0 # FN 
+            b += (!ph_i && ph_i_pred) ? 1 : 0 # FP 
+        end
+        # now compute HSS for sample by formula
+        num = 2*(a*d-b*c)
+        denom = (a+b)*(b+d)+(a+c)*(c+d)
+        hss_scores[l] = num / denom
+        #hss_scores[l] = (denom == 0) ? 0 : num / denom
+    end
+    return hss_scores
+end
+
+
+"""
+    function hss(pred1::AbstractMatrix, pred2::AbstractMatrix, true1::AbstractMatrix, true2::AbstractMatrix)
+
+Measures accuracy of predictions (wrt randomly generated forecast). Is considered good if >0.5.
+Gathers hss scores for different MJO phases in a matrix, where phase 0 is the inactive phase.
+Formula from paper "Improving the Predictability of the Madden-Julian Oscillation at Subseasonal Scales With Gaussian Process Models" by Chen H. et al.
+
+# Arguments:
+    - `pred1::AbstractMatrix`:  predictions of pc1, NxL matrix. N is sample size per lead time, L is all lead times considered
+    - `pred2::AbstractMatrix`:  predictions of pc2, NxL matrix. N is sample size per lead time, L is all lead times considered
+    - `true1::AbstractMatrix`: test data for each sample of pc1, NxL matrix.
+    - `true2::AbstractMatrix`: test data for each sample of pc2, NxL matrix.
+
+# Returns:
+    - `Matrics`: HSS for each lead time, matrix of size 9xL. Rows of matrix represent different MJO phases.
+"""
+function hss(pred1::AbstractMatrix, pred2::AbstractMatrix, true1::AbstractMatrix, true2::AbstractMatrix)
+    N, L = size(pred1,1), size(pred1, 2)
+    hss_scores = zeros(9,L)
+    for i in 0:8
+        hss_scores[i+1,:] = hss_i(i, pred1, pred2, true1, true2)
+    end
+    return hss_scores
 end

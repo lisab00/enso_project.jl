@@ -147,8 +147,8 @@ function sample_lead_times(L::Int64, N::Int64, data::AbstractMatrix, train_size:
         test_data = data[:, train_size+initial_val_size+n+1:train_size+initial_val_size+n+L]
 
         # train
-        esn, W_out, val_loss = enso_project.cross_validate_esn(train_data, val_data, param_grid) 
-        prediction = enso_project.esn_eval_pred(esn, W_out, test_data)
+        esn, W_out, val_loss = cross_validate_esn(train_data, val_data, param_grid) 
+        prediction = esn_eval_pred(esn, W_out, test_data)
 
         # store 
         datasets_test[n+1,:] = test_data[1,:]
