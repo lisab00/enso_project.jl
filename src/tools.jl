@@ -396,7 +396,7 @@ end
 """
     function hss(pred1::AbstractMatrix, pred2::AbstractMatrix, true1::AbstractMatrix, true2::AbstractMatrix)
 
-Measures accuracy of predictions (wrt randomly generated forecast). Is considered good if >0.5.
+Measures accuracy of predictions (wrt randomly generated forecast). Is considered good if >0.
 Gathers hss scores for different MJO phases in a matrix, where phase 0 is the inactive phase.
 Formula from paper "Improving the Predictability of the Madden-Julian Oscillation at Subseasonal Scales With Gaussian Process Models" by Chen H. et al.
 
@@ -416,4 +416,42 @@ function hss(pred1::AbstractMatrix, pred2::AbstractMatrix, true1::AbstractMatrix
         hss_scores[i+1,:] = hss_i(i, pred1, pred2, true1, true2)
     end
     return hss_scores
+end
+
+
+"""
+    function phase_error(predictions::AbstractMatrix, test_data::AbstractMatrix, predictions2::AbstractMatrix, test_data2::AbstractMatrix)
+
+Compute the phase error between two sets of predicted and true trajectories over time, i.e. averaged angle between observed and predicted RMM vectors.
+Inputs are N×L matrices: rows = samples, cols = lead times.
+Formula from paper: "Improving the Predictability of the Madden-Julian Oscillation at Subseasonal Scales With Gaussian Process Models" by Chen H. et al.
+
+# Arguments:
+    - `predicitons::AbstractMatrix`:  predictions, NxL matrix. N is sample size per lead time, L is all lead times considered
+    - `test_data::AbstractMatrix`: test data for each sample, NxL matrix.
+    - `predicitons2::AbstractMatrix`:  predictions of second component, NxL matrix. N is sample size per lead time, L is all lead times considered
+    - `test_data2::AbstractMatrix`: test data of second component for each sample, NxL matrix.
+
+# Returns
+    - `Vector{Float64}`: mean phase error at each lead time across all samples, vector of length L 
+"""
+function phase_error(predictions::AbstractMatrix, test_data::AbstractMatrix, predictions2::AbstractMatrix, test_data2::AbstractMatrix)
+    
+    N, L = size(test_data, 1), size(test_data, 2)
+    error = zeros(L)
+
+    for l in 1:L
+        # vectors of data at lead time l
+        z1 = test_data[:,l]
+        z2 = test_data2[:,l]
+        zh1 = predictions[:,l]
+        zh2 = predictions2[:,l]
+
+        num   = z1 .* zh2 .- z2 .* zh1
+        denom = z1 .* zh1 .+ z2 .* zh2
+
+        error[l] = sum(atan.(num ./ denom)) / N 
+    end
+
+    return error
 end
