@@ -41,7 +41,7 @@ end
 
 Do a grid search on the given param_grid to find the optimal hyperparameters.
 """
-function cross_validate_esn(train_data::AbstractMatrix, val_data::AbstractMatrix, param_grid::Vector)
+function cross_validate_esn(train_data::AbstractMatrix, val_data::AbstractMatrix, param_grid::Vector, pos_shift_tde::Bool=false)
     best_loss = Inf
     best_params = nothing
 
@@ -67,7 +67,11 @@ function cross_validate_esn(train_data::AbstractMatrix, val_data::AbstractMatrix
         # Evaluate the loss on the validation set
         steps_to_predict = size(val_data, 2)
         prediction = esn(Generative(steps_to_predict), Wₒᵤₜ)
-        loss = sum(abs2, prediction - val_data)
+        if pos_shift_tde
+            loss = sum(abs2, prediction[end, :] - val_data[end, :])
+        else
+            loss = sum(abs2, prediction[1, :] - val_data[1, :])
+        end
         
         # Keep track of the best hyperparameter values
         if loss < best_loss
@@ -101,10 +105,17 @@ end
 
     given an ESN, its output layer W_out and a data matrix, evaluate the prediction of the ESN on the given data.
 """
-function esn_eval_pred(esn::ESN, W_out, data::AbstractMatrix)
+function esn_eval_pred(esn::ESN, W_out, data::AbstractMatrix; pos_shift_tde::Bool=false)
     steps_to_predict = size(data,2)
+
     prediction = esn(Generative(steps_to_predict), W_out)
-    return prediction[1,:]
+
+    if pos_shift_tde
+        prediction = prediction[end,:]
+    else
+        prediction = prediction[1,:]
+    end
+    return prediction
 end
 
 """
@@ -113,13 +124,19 @@ end
 Given an Echo State Network, plot its predictions versus the given test set.
 data_name is used to label the plot correctly
 """
-function plot_esn_prediction(esn::ESN, W_out, data::AbstractMatrix, data_name::String)
+function plot_esn_prediction(esn::ESN, W_out, data::AbstractMatrix, data_name::String; pos_shift_tde::Bool=false)
     prediction = esn_eval_pred(esn, W_out, data)
     
     label = ["actual" "predicted"]
     times =  collect(0:size(data,2))[1:end-1]
 
-    plot(times, [data[1,:], prediction], label=label, ylabel="ONI", xlabel="Months", title="Prediction of ENSO using an ESN on $data_name")
+    if pos_shift_tde
+        data = data[end,:]
+    else
+        data = data[1,:]
+    end
+
+    plot(times, [data, prediction], label=label, ylabel="ONI", xlabel="Months", title="Prediction of ENSO using an ESN on $data_name")
 end
 
 """
@@ -136,7 +153,7 @@ For each sample, an ESN is trained up until the starting point of the test set.
         - `initial_val_size::Int64`: initial size of the validation set. The validation set size is increased, when predictions are started from a later time step
         - `param_grid::Vector`: hyperprm grid used for retraining of ESNs
 """
-function sample_lead_times(L::Int64, N::Int64, data::AbstractMatrix, train_size::Int64, initial_val_size::Int64, param_grid::Vector)
+function sample_lead_times(L::Int64, N::Int64, data::AbstractMatrix, train_size::Int64, initial_val_size::Int64, param_grid::Vector; pos_shift_tde::Bool=false)
     datasets_test = zeros(N,L)
     predictions = zeros(N,L)
 
@@ -148,11 +165,15 @@ function sample_lead_times(L::Int64, N::Int64, data::AbstractMatrix, train_size:
 
         # train
         esn, W_out, val_loss = cross_validate_esn(train_data, val_data, param_grid) 
-        prediction = esn_eval_pred(esn, W_out, test_data)
+        prediction = esn_eval_pred(esn, W_out, test_data, pos_shift_tde=pos_shift_tde)
 
         # store 
-        datasets_test[n+1,:] = test_data[1,:]
         predictions[n+1,:] = prediction
+        if pos_shift_tde
+            datasets_test[n+1,:] = test_data[end,:]
+        else    
+            datasets_test[n+1,:] = test_data[1,:]
+        end
 
         # progress control
         println("Finished sample $(n+1)")
